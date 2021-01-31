@@ -1,69 +1,46 @@
-<div align="center">
+# Getting Started with Create React App
 
-  <h1><code>wasm-pack-template</code></h1>
+This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
-  <strong>A template for kick starting a Rust and WebAssembly project using <a href="https://github.com/rustwasm/wasm-pack">wasm-pack</a>.</strong>
+## Available Scripts
 
-  <p>
-    <a href="https://travis-ci.org/rustwasm/wasm-pack-template"><img src="https://img.shields.io/travis/rustwasm/wasm-pack-template.svg?style=flat-square" alt="Build Status" /></a>
-  </p>
+In the project directory, you can run:
 
-  <h3>
-    <a href="https://rustwasm.github.io/docs/wasm-pack/tutorials/npm-browser-packages/index.html">Tutorial</a>
-    <span> | </span>
-    <a href="https://discordapp.com/channels/442252698964721669/443151097398296587">Chat</a>
-  </h3>
+### `yarn start`
 
-  <sub>Built with 🦀🕸 by <a href="https://rustwasm.github.io/">The Rust and WebAssembly Working Group</a></sub>
-</div>
+Runs the app in the development mode.\
+Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
 
-## About
+The page will reload if you make edits.\
+You will also see any lint errors in the console.
 
-[**📚 Read this template tutorial! 📚**][template-docs]
+### `yarn test`
 
-This template is designed for compiling Rust libraries into WebAssembly and
-publishing the resulting package to NPM.
+Launches the test runner in the interactive watch mode.\
+See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
 
-Be sure to check out [other `wasm-pack` tutorials online][tutorials] for other
-templates and usages of `wasm-pack`.
+### `yarn build`
 
-[tutorials]: https://rustwasm.github.io/docs/wasm-pack/tutorials/index.html
-[template-docs]: https://rustwasm.github.io/docs/wasm-pack/tutorials/npm-browser-packages/index.html
+Builds the app for production to the `build` folder.\
+It correctly bundles React in production mode and optimizes the build for the best performance.
 
-## 🚴 Usage
+The build is minified and the filenames include the hashes.\
+Your app is ready to be deployed!
 
-### 🐑 Use `cargo generate` to Clone this Template
+See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
 
-[Learn more about `cargo generate` here.](https://github.com/ashleygwilliams/cargo-generate)
+### `yarn eject`
 
-```
-cargo generate --git https://github.com/rustwasm/wasm-pack-template.git --name my-project
-cd my-project
-```
+**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
 
-### 🛠️ Build with `wasm-pack build`
+If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
 
-```
-wasm-pack build
-```
+Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
 
-### 🔬 Test in Headless Browsers with `wasm-pack test`
+You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
 
-```
-wasm-pack test --headless --firefox
-```
+## Learn More
 
-### 🎁 Publish to NPM with `wasm-pack publish`
+You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
 
-```
-wasm-pack publish
-```
-
-## 🔋 Batteries Included
-
-* [`wasm-bindgen`](https://github.com/rustwasm/wasm-bindgen) for communicating
-  between WebAssembly and JavaScript.
-* [`console_error_panic_hook`](https://github.com/rustwasm/console_error_panic_hook)
-  for logging panic messages to the developer console.
-* [`wee_alloc`](https://github.com/rustwasm/wee_alloc), an allocator optimized
-  for small code size.
+To learn React, check out the [React documentation](https://reactjs.org/).

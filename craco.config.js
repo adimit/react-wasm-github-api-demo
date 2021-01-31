@@ -27,7 +27,8 @@ module.exports = {
       });
 
       config.plugins.push(new WasmPackPlugin({
-        crateDirectory: path.resolve(__dirname, "..")
+        crateDirectory: path.resolve(__dirname, "backend"),
+        outDir: "../src/pkg"
       }));
 
       return config;

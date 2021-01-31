@@ -1,5 +1,5 @@
 [package]
-name = "interactive-heatmap"
+name = "backend"
 version = "0.1.0"
 authors = ["Aleksandar Dimitrov <git@aleks.bg>"]
 edition = "2018"
