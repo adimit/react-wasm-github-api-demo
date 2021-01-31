@@ -21,25 +21,35 @@ interface Branch {
   commit: Commit;
 }
 
+interface GithubError {
+  message: string;
+  documentation_url: string;
+}
+
 function App() {
   const [{ repoName, branch }, setRepositoryInfo] = React.useState<{
     repoName: string;
     branch: string;
   }>({ repoName: "", branch: "" });
-  const [{ loading, branchInfo }, setFetchResult] = React.useState<{
+  const [{ loading, branchInfo, error }, setFetchResult] = React.useState<{
     loading: boolean;
     branchInfo?: Branch;
+    error?: GithubError;
   }>({ loading: false });
   useEffect(() => {
     if (repoName !== "" && branch !== "") {
       setFetchResult({ loading: true });
       wasm
         .run(repoName, branch)
-        .then((result: any) => {
-          setFetchResult({ loading: false, branchInfo: result });
+        .then((result: GithubError | Branch) => {
           console.log(result);
+          if ("message" in result) {
+            setFetchResult({ loading: false, error: result });
+          } else {
+            setFetchResult({ loading: false, branchInfo: result });
+          }
         })
-        .catch((error: any) => console.log(error));
+        .catch((error: any) => console.error(error));
     }
   }, [repoName, branch]);
 
@@ -49,6 +59,11 @@ function App() {
         <TextField
           id="repoName"
           label="Repository Name"
+          onKeyPress={(e) => {
+            if (e.key === "Enter") {
+              console.log(e.target);
+            }
+          }}
           onBlur={(e) =>
             setRepositoryInfo({ repoName: e.target.value, branch })
           }
@@ -58,6 +73,11 @@ function App() {
         <TextField
           id="branch"
           label="Branch Name"
+          onKeyPress={(e) => {
+            if (e.key === "Enter") {
+              console.log(e.target);
+            }
+          }}
           onBlur={(e) =>
             setRepositoryInfo({ repoName, branch: e.target.value })
           }
@@ -65,12 +85,10 @@ function App() {
       </Grid>
 
       <Grid item={true}>
-        {loading ? (
-          <CircularProgress />
-        ) : (
-          branchInfo &&
-          `Name: ${branchInfo.name}, HEAD: ${branchInfo.commit.sha}, author: ${branchInfo.commit.commit.author.name} <${branchInfo.commit.commit.author.email}>`
-        )}
+        {loading && <CircularProgress />}
+        {branchInfo &&
+          `Name: ${branchInfo.name}, HEAD: ${branchInfo.commit.sha}, author: ${branchInfo.commit.commit.author.name} <${branchInfo.commit.commit.author.email}>`}
+        {error && <a href={error.documentation_url}>{error.message}</a>}
       </Grid>
       <Grid item={true}></Grid>
     </Grid>

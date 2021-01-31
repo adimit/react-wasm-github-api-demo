@@ -79,11 +79,9 @@ pub async fn run(repo: String, branch: String) -> Result<JsValue, JsValue> {
     let window = web_sys::window().expect("Should have window");
     let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
 
-    assert!(resp_value.is_instance_of::<Response>());
-    let resp: Response = resp_value.dyn_into().unwrap();
+    let resp: Response = resp_value.dyn_into()?;
 
     let json = JsFuture::from(resp.json()?).await?;
-    let branch_info: Branch = json.into_serde().unwrap();
 
-    Ok(JsValue::from_serde(&branch_info).unwrap())
+    Ok(JsValue::from(json))
 }
