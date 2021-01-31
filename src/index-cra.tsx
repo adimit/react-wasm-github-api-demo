@@ -3,10 +3,6 @@ import ReactDOM from "react-dom";
 import "./index.css";
 import App from "./App";
 import reportWebVitals from "./reportWebVitals";
-import * as wasm from "./pkg";
-
-wasm.greet();
-wasm.run("adimit/config", "master").then((result: any) => console.log(result));
 
 ReactDOM.render(
   <React.StrictMode>
