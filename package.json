@@ -11,6 +11,7 @@
     "web-vitals": "^0.2.4"
   },
   "scripts": {
+    "download-schema": "apollo client:download-schema --endpoint https://api.github.com/graphql backend/schema.json --header=\"Authorization: bearer ${GITHUB_API_TOKEN}\"",
     "start": "craco start",
     "build": "craco build",
     "test": "craco test",
@@ -44,6 +45,7 @@
     "@types/react": "^16.9.53",
     "@types/react-dom": "^16.9.8",
     "@wasm-tool/wasm-pack-plugin": "^1.3.1",
+    "apollo": "^2.32.1",
     "wasm-loader": "^1.3.0"
   }
 }
