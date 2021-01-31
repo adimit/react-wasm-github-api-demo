@@ -1,0 +1,29 @@
+query BranchHeadCommitAuthor($owner: String!, $repoName: String!, $branch: String!) {
+  repository(owner: $owner, name: $repoName) {
+    ref(qualifiedName: $branch) {
+      id
+      name
+      target {
+        id
+        ...on Commit {
+          author {
+            name
+            email
+            user {
+              name
+            }
+          }
+        }
+      }
+    }
+  }
+
+  rateLimit {
+    cost
+    limit
+    nodeCount
+    remaining
+    resetAt
+    used
+  }
+}
