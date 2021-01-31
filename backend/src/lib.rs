@@ -1,6 +1,17 @@
 mod utils;
+use cfg_if::cfg_if;
 
 use wasm_bindgen::prelude::*;
+
+cfg_if! {
+    if #[cfg(feature = "console_log")] {
+        fn init_log() {
+            console_log::init_with_level(log::Level::Trace).expect("error initializing console logging");
+        }
+    } else {
+        fn init_log() {}
+    }
+}
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -15,7 +26,11 @@ extern "C" {
 
 #[wasm_bindgen]
 pub fn greet() {
-    unsafe {
-        alert("Hello, interactive-heatmap!");
-    }
+    init_log();
+
+    log::info!("It works!");
+    log::trace!("Trace");
+    log::debug!("debug");
+    log::error!("error");
+    log::warn!("warn");
 }
