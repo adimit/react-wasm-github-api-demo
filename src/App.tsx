@@ -54,14 +54,17 @@ function App() {
   }, [repoName, branch]);
 
   return (
-    <Grid container={true}>
+    <Grid container={true} spacing={6}>
       <Grid item={true} xs={6}>
         <TextField
           id="repoName"
           label="Repository Name"
           onKeyPress={(e) => {
             if (e.key === "Enter") {
-              console.log(e.target);
+              setRepositoryInfo({
+                repoName: (e.target as any).value,
+                branch,
+              });
             }
           }}
           onBlur={(e) =>
@@ -75,7 +78,10 @@ function App() {
           label="Branch Name"
           onKeyPress={(e) => {
             if (e.key === "Enter") {
-              console.log(e.target);
+              setRepositoryInfo({
+                repoName,
+                branch: (e.target as any).value,
+              });
             }
           }}
           onBlur={(e) =>
