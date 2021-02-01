@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { CircularProgress, Grid, TextField } from "@material-ui/core";
-import * as wasm from "./pkg";
+import { run } from "./pkg";
 
 interface Signature {
   name: string;
@@ -26,6 +26,25 @@ interface GithubError {
   documentation_url: string;
 }
 
+const InputField = ({
+  setValue,
+  ...props
+}: {
+  id: string;
+  label: string;
+  setValue: (val: string) => void;
+}) => (
+  <TextField
+    onKeyPress={(e) => {
+      if (e.key === "Enter") {
+        setValue((e.target as any).value);
+      }
+    }}
+    onBlur={(e) => setValue(e.target.value)}
+    {...props}
+  />
+);
+
 function App() {
   const [{ repoName, branch }, setRepositoryInfo] = React.useState<{
     repoName: string;
@@ -39,8 +58,7 @@ function App() {
   useEffect(() => {
     if (repoName !== "" && branch !== "") {
       setFetchResult({ loading: true });
-      wasm
-        .run(repoName, branch)
+      run(repoName, branch)
         .then((result: GithubError | Branch) => {
           console.log(result);
           if ("message" in result) {
@@ -56,37 +74,17 @@ function App() {
   return (
     <Grid container={true} spacing={6}>
       <Grid item={true} xs={6}>
-        <TextField
+        <InputField
           id="repoName"
           label="Repository Name"
-          onKeyPress={(e) => {
-            if (e.key === "Enter") {
-              setRepositoryInfo({
-                repoName: (e.target as any).value,
-                branch,
-              });
-            }
-          }}
-          onBlur={(e) =>
-            setRepositoryInfo({ repoName: e.target.value, branch })
-          }
+          setValue={(val) => setRepositoryInfo({ branch, repoName: val })}
         />
       </Grid>
       <Grid item={true} xs={6}>
-        <TextField
+        <InputField
           id="branch"
           label="Branch Name"
-          onKeyPress={(e) => {
-            if (e.key === "Enter") {
-              setRepositoryInfo({
-                repoName,
-                branch: (e.target as any).value,
-              });
-            }
-          }}
-          onBlur={(e) =>
-            setRepositoryInfo({ repoName, branch: e.target.value })
-          }
+          setValue={(val) => setRepositoryInfo({ repoName, branch: val })}
         />
       </Grid>
 
