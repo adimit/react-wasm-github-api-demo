@@ -11,7 +11,7 @@
     "web-vitals": "^0.2.4"
   },
   "scripts": {
-    "download-schema": "apollo client:download-schema --endpoint https://api.github.com/graphql backend/schema.json --header=\"Authorization: bearer ${GITHUB_API_TOKEN}\"",
+    "download-schema": "apollo client:download-schema --endpoint https://api.github.com/graphql backend/github.graphql --includes=\"backend/src/*.graphql\" --header=\"Authorization: bearer ${GITHUB_API_TOKEN}\"",
     "start": "craco start",
     "build": "craco build",
     "test": "craco test",

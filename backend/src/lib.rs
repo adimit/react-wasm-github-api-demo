@@ -1,6 +1,15 @@
 use serde::{Deserialize, Serialize};
 mod utils;
 use cfg_if::cfg_if;
+use graphql_client::GraphQLQuery;
+
+// Github Schema DateTime type is just a string
+type DateTime = String;
+type URI = String;
+
+#[derive(GraphQLQuery)]
+#[graphql(schema_path = "schema.json", query_path = "src/head-query.graphql")]
+pub struct BranchHeadCommitAuthor;
 
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
@@ -82,6 +91,49 @@ pub async fn run(repo: String, branch: String) -> Result<JsValue, JsValue> {
     let resp: Response = resp_value.dyn_into()?;
 
     let json = JsFuture::from(resp.json()?).await?;
+
+    Ok(JsValue::from(json))
+}
+
+#[derive(Debug, Serialize)]
+struct GithubHeaders {
+    pub authorization: String,
+    pub accept: String,
+}
+
+#[wasm_bindgen]
+pub async fn run_graphql(
+    owner: String,
+    repo: String,
+    branch: String,
+    token: String,
+) -> Result<JsValue, JsValue> {
+    let query = BranchHeadCommitAuthor::build_query(branch_head_commit_author::Variables {
+        branch,
+        owner,
+        repo_name: repo,
+    });
+    let mut opts = RequestInit::new();
+    let headers = JsValue::from_serde(&GithubHeaders {
+        authorization: format!("Bearer {}", token),
+        accept: "application/vnd.github.v3+json".into(),
+    })
+    .map_err(|err| err.to_string())?;
+    opts.headers(&headers);
+    opts.method("POST");
+    opts.mode(RequestMode::Cors);
+    let body = serde_json::to_string(&query).map_err(|_| JsValue::NULL)?;
+    opts.body(Option::Some(&JsValue::from_str(&body)));
+
+    let url = "https://api.github.com/graphql";
+
+    let window = web_sys::window().expect("Should have window here");
+    let request = Request::new_with_str_and_init(&url, &opts)?;
+    let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
+
+    let response: Response = resp_value.dyn_into()?;
+
+    let json = JsFuture::from(response.json()?).await?;
 
     Ok(JsValue::from(json))
 }
