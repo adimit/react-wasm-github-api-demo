@@ -46,19 +46,28 @@ const InputField = ({
 );
 
 function App() {
-  const [{ repoName, branch }, setRepositoryInfo] = React.useState<{
-    repoName: string;
+  const [{ repo, owner, branch }, setRepositoryInfo] = React.useState<{
+    owner: string;
     branch: string;
-  }>({ repoName: "", branch: "" });
+    repo: string;
+  }>({ owner: "", branch: "", repo: "" });
   const [{ loading, branchInfo, error }, setFetchResult] = React.useState<{
     loading: boolean;
     branchInfo?: Branch;
     error?: GithubError;
   }>({ loading: false });
   useEffect(() => {
-    if (repoName !== "" && branch !== "") {
+    if (repo !== "" && branch !== "" && owner !== "") {
+      /*
+      run_graphql(
+        "adimit",
+        "config",
+        "master",
+        "5a22c596596af0e64471257ce1433402b4af0165"
+      ).then((result: any) => console.log("graphql ", result));
+      */
       setFetchResult({ loading: true });
-      run(repoName, branch)
+      run(`${owner}/${repo}`, branch)
         .then((result: GithubError | Branch) => {
           console.log(result);
           if ("message" in result) {
@@ -69,22 +78,29 @@ function App() {
         })
         .catch((error: any) => console.error(error));
     }
-  }, [repoName, branch]);
+  }, [repo, owner, branch]);
 
   return (
     <Grid container={true} spacing={6}>
-      <Grid item={true} xs={6}>
+      <Grid item={true} xs={4}>
         <InputField
-          id="repoName"
-          label="Repository Name"
-          setValue={(val) => setRepositoryInfo({ branch, repoName: val })}
+          id="owner"
+          label="Owner"
+          setValue={(val) => setRepositoryInfo({ branch, owner: val, repo })}
         />
       </Grid>
-      <Grid item={true} xs={6}>
+      <Grid item={true} xs={4}>
+        <InputField
+          id="repo"
+          label="Repository Name"
+          setValue={(val) => setRepositoryInfo({ repo: val, owner, branch })}
+        />
+      </Grid>
+      <Grid item={true} xs={4}>
         <InputField
           id="branch"
           label="Branch Name"
-          setValue={(val) => setRepositoryInfo({ repoName, branch: val })}
+          setValue={(val) => setRepositoryInfo({ repo, owner, branch: val })}
         />
       </Grid>
 
