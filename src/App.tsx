@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { CircularProgress, Grid, TextField } from "@material-ui/core";
-import { run } from "./pkg";
+import { run_graphql } from "./pkg";
 
 interface Signature {
   name: string;
@@ -45,62 +45,99 @@ const InputField = ({
   />
 );
 
+interface User {
+  avatar_url: string;
+  email?: string;
+  handle?: string;
+  name?: string;
+}
+
+interface BackendData {
+  Data: {
+    branch: {
+      name: string;
+      head: {
+        author: User;
+        committer: User;
+        sha: string;
+      };
+    };
+    rate_limit_info: {
+      cost: number;
+      limit: number;
+      node_count: number;
+      remaining: number;
+      reset_at: string;
+      used: number;
+    };
+    errors: [{ message: string }];
+    repo: {
+      name_with_owner: string;
+      owner: User;
+    };
+  };
+}
+
+interface BackendError {
+  Error: {
+    message: string;
+  };
+}
+
 function App() {
   const [{ repo, owner, branch }, setRepositoryInfo] = React.useState<{
     owner: string;
     branch: string;
     repo: string;
-  }>({ owner: "", branch: "", repo: "" });
+  }>({ owner: "adimit", branch: "aster", repo: "config" });
+  const [apiKey, setApiKey] = React.useState<string>(
+    "5a22c596596af0e64471257ce1433402b4af0165"
+  );
   const [{ loading, branchInfo, error }, setFetchResult] = React.useState<{
     loading: boolean;
     branchInfo?: Branch;
     error?: GithubError;
   }>({ loading: false });
   useEffect(() => {
-    if (repo !== "" && branch !== "" && owner !== "") {
-      /*
-      run_graphql(
-        "adimit",
-        "config",
-        "master",
-        "5a22c596596af0e64471257ce1433402b4af0165"
-      ).then((result: any) => console.log("graphql ", result));
-      */
-      setFetchResult({ loading: true });
-      run(`${owner}/${repo}`, branch)
-        .then((result: GithubError | Branch) => {
-          console.log(result);
-          if ("message" in result) {
-            setFetchResult({ loading: false, error: result });
-          } else {
-            setFetchResult({ loading: false, branchInfo: result });
-          }
+    if (repo !== "" && branch !== "" && owner !== "" && apiKey !== "") {
+      run_graphql(owner, repo, branch, apiKey)
+        .then((result: BackendData | BackendError) => {
+          setFetchResult({ loading: false });
+          console.log("graphql ", result);
         })
         .catch((error: any) => console.error(error));
+      setFetchResult({ loading: true });
     }
-  }, [repo, owner, branch]);
+  }, [repo, owner, branch, apiKey]);
 
   return (
     <Grid container={true} spacing={6}>
-      <Grid item={true} xs={4}>
+      <Grid item={true} xs={3}>
         <InputField
           id="owner"
           label="Owner"
           setValue={(val) => setRepositoryInfo({ branch, owner: val, repo })}
         />
       </Grid>
-      <Grid item={true} xs={4}>
+      <Grid item={true} xs={3}>
         <InputField
           id="repo"
           label="Repository Name"
           setValue={(val) => setRepositoryInfo({ repo: val, owner, branch })}
         />
       </Grid>
-      <Grid item={true} xs={4}>
+      <Grid item={true} xs={3}>
         <InputField
           id="branch"
           label="Branch Name"
           setValue={(val) => setRepositoryInfo({ repo, owner, branch: val })}
+        />
+      </Grid>
+      <Grid item={true} xs={3}>
+        <InputField
+          id="token"
+          label="Api Token"
+          setValue={(val) => setApiKey(val)}
         />
       </Grid>
 

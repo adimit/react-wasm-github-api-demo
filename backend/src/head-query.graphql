@@ -6,6 +6,10 @@ query BranchHeadCommitAuthor($owner: String!, $repoName: String!, $branch: Strin
       __typename
       login
       avatarUrl
+      ... on User{
+        name
+        email
+      }
     }
     ref(qualifiedName: $branch) {
       id
@@ -14,12 +18,21 @@ query BranchHeadCommitAuthor($owner: String!, $repoName: String!, $branch: Strin
         __typename
         id
         ...on Commit {
+          oid
+          committer {
+            name
+            email
+            avatarUrl
+            user {
+              login
+            }
+          }
           author {
             name
             email
             avatarUrl
             user {
-              name
+              login
             }
           }
         }
