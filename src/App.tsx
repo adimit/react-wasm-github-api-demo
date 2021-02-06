@@ -33,6 +33,7 @@ const InputField = ({
   id: string;
   label: string;
   setValue: (val: string) => void;
+  defaultValue?: string;
 }) => (
   <TextField
     onKeyPress={(e) => {
@@ -89,8 +90,9 @@ function App() {
     repo: string;
   }>({ owner: "adimit", branch: "master", repo: "config" });
   const [apiKey, setApiKey] = React.useState<string>(
-    "5a22c596596af0e64471257ce1433402b4af0165"
+    localStorage.getItem("github.token") ?? ""
   );
+
   const [{ loading, branchInfo, error }, setFetchResult] = React.useState<{
     loading: boolean;
     branchInfo?: Branch;
@@ -107,6 +109,10 @@ function App() {
       setFetchResult({ loading: true });
     }
   }, [repo, owner, branch, apiKey]);
+
+  useEffect(() => {
+    apiKey !== "" && localStorage.setItem("github.token", apiKey);
+  }, [apiKey]);
 
   return (
     <Grid container={true} spacing={6}>
@@ -136,6 +142,7 @@ function App() {
           id="token"
           label="Api Token"
           setValue={(val) => setApiKey(val)}
+          defaultValue={apiKey}
         />
       </Grid>
 
