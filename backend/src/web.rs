@@ -50,7 +50,11 @@ pub async fn gql_call<Q: GraphQLQuery>(
         .await
         .map_err(js_error("Could not resolve text promise".into()))
         .and_then(|jsvalue| jsvalue.as_string().ok_or(anyhow!("JsValue not a string")))?;
-
-    serde_json::from_str(&text)
-        .map_err(|err| anyhow!("Could not parse response data. {}", err.to_string()))
+    let serde: serde_json::Value = serde_json::from_str(&text)?;
+    if serde["message"].is_string() {
+        Err(anyhow!("Graphql error: {}", &serde["message"]))
+    } else {
+        serde_json::from_value(serde)
+            .map_err(|err| anyhow!("Could not parse response data. {}", err.to_string()))
+    }
 }
