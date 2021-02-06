@@ -79,9 +79,7 @@ interface BackendData {
 }
 
 interface BackendError {
-  Error: {
-    message: string;
-  };
+  Error: string;
 }
 
 function App() {
@@ -89,7 +87,7 @@ function App() {
     owner: string;
     branch: string;
     repo: string;
-  }>({ owner: "adimit", branch: "aster", repo: "config" });
+  }>({ owner: "adimit", branch: "master", repo: "config" });
   const [apiKey, setApiKey] = React.useState<string>(
     "5a22c596596af0e64471257ce1433402b4af0165"
   );

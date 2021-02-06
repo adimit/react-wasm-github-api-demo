@@ -1,5 +1,7 @@
+use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 mod utils;
+mod web;
 use cfg_if::cfg_if;
 use graphql_client::GraphQLQuery;
 
@@ -12,9 +14,7 @@ type GitObjectID = String;
 #[graphql(schema_path = "schema.json", query_path = "src/head-query.graphql")]
 pub struct BranchHeadCommitAuthor;
 
-use wasm_bindgen::{prelude::*, JsCast};
-use wasm_bindgen_futures::JsFuture;
-use web_sys::{Request, RequestInit, RequestMode};
+use wasm_bindgen::prelude::*;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct User {
@@ -118,7 +118,7 @@ impl From<serde_json::Error> for FatalError {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum GraphqlResult {
     Data(Data),
-    Error(FatalError),
+    Error(String),
 }
 
 impl From<GraphqlResult> for JsValue {
@@ -134,12 +134,83 @@ pub async fn run_graphql(
     branch: String,
     token: String,
 ) -> GraphqlResult {
+    init_log();
     match run_graphql_private(owner, repo, branch, token).await {
         Ok(data) => GraphqlResult::Data(data),
-        Err(err) => GraphqlResult::Error(err),
+        Err(err) => GraphqlResult::Error(err.to_string()),
     }
 }
 
+async fn run_graphql_private(
+    owner: String,
+    repo: String,
+    branch: String,
+    token: String,
+) -> anyhow::Result<Data> {
+    let response = web::gql_call(
+        BranchHeadCommitAuthor,
+        branch_head_commit_author::Variables {
+            branch: branch.clone(),
+            owner,
+            repo_name: repo,
+        },
+        "https://api.github.com/graphql".into(),
+        [
+            ("Authorization".into(), format!("Bearer {}", token)),
+            ("Accept".into(), "application/vnd.github.v3+json".into()),
+            ("Content-Type".into(), "application/json".into()),
+        ]
+        .iter()
+        .cloned()
+        .collect(),
+    )
+    .await?;
+
+    let data = response.data.ok_or(anyhow!("No data on response"))?;
+    let rate_limit = data
+        .rate_limit
+        .ok_or(anyhow!("No rate_limit on response data"))?;
+    let repository = data.repository.ok_or(anyhow!("No repository in data"))?;
+    let branch_ref = repository.ref_.ok_or(anyhow!(
+        "No branch {} on repository {}",
+        &branch,
+        repository.name_with_owner
+    ))?;
+    let head = branch_ref.target.ok_or(anyhow!(
+        "No target for branch {} on repository {}",
+        &branch,
+        repository.name_with_owner
+    ))?;
+
+    Ok(Data {
+        rate_limit_info: RateLimitInfo {
+            cost: rate_limit.cost,
+            limit: rate_limit.limit,
+            node_count: rate_limit.node_count,
+            remaining: rate_limit.remaining,
+            used: rate_limit.used,
+            reset_at: rate_limit.reset_at,
+        },
+        repo: Repo {
+            name_with_owner: repository.name_with_owner,
+            owner: get_user_from_owner(repository.owner)?,
+        },
+        branch: Branch {
+            name: branch_ref.name,
+            head: get_commit_info_from_target(head)?,
+        },
+        errors: response.errors.map_or(vec![], |error_list| {
+            error_list
+                .into_iter()
+                .map(|error| GraphqlError {
+                    message: error.message,
+                })
+                .collect::<Vec<GraphqlError>>()
+        }),
+    })
+}
+
+/*
 async fn run_graphql_private(
     owner: String,
     repo: String,
@@ -229,20 +300,21 @@ async fn run_graphql_private(
         }),
     })
 }
+*/
 
 fn get_commit_info_from_target(
     head: branch_head_commit_author::BranchHeadCommitAuthorRepositoryRefTarget,
-) -> Result<Commit, FatalError> {
+) -> anyhow::Result<Commit> {
     if let branch_head_commit_author::BranchHeadCommitAuthorRepositoryRefTargetOn::Commit(commit) =
         head.on
     {
-        let github_author = commit.author.ok_or(FatalError {
-            message: format!("No author on commit {}", commit.oid),
-        })?;
+        let github_author = commit
+            .author
+            .ok_or(anyhow!("No author on commit {}", commit.oid))?;
 
-        let github_committer = commit.committer.ok_or(FatalError {
-            message: format!("No committer on commit {}", commit.oid),
-        })?;
+        let github_committer = commit
+            .committer
+            .ok_or(anyhow!("No committer on commit {}", commit.oid))?;
 
         let author = User {
             avatar_url: github_author.avatar_url,
@@ -264,15 +336,13 @@ fn get_commit_info_from_target(
             sha: commit.oid,
         })
     } else {
-        Err(FatalError {
-            message: format!("ref does not appear to be a commit"),
-        })
+        Err(anyhow!("ref does not appear to be a commit"))
     }
 }
 
 fn get_user_from_owner(
     owner: branch_head_commit_author::BranchHeadCommitAuthorRepositoryOwner,
-) -> Result<User, FatalError> {
+) -> anyhow::Result<User> {
     match owner.on {
         branch_head_commit_author::BranchHeadCommitAuthorRepositoryOwnerOn::User(user) => {
             Ok(User {
@@ -282,8 +352,6 @@ fn get_user_from_owner(
                 handle: Option::Some(owner.login),
             })
         }
-        _ => Err(FatalError {
-            message: "Can only get owner on User, not Organisation.".into(),
-        }),
+        _ => Err(anyhow!("Can only get owner on User, not Organisation")),
     }
 }
