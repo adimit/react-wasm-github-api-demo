@@ -129,13 +129,18 @@ impl From<GraphqlResult> for JsValue {
 }
 
 #[wasm_bindgen]
+pub fn init() {
+    init_log();
+    crate::utils::set_panic_hook();
+}
+
+#[wasm_bindgen]
 pub async fn run_graphql(
     owner: String,
     repo: String,
     branch: String,
     token: String,
 ) -> GraphqlResult {
-    init_log();
     match run_graphql_private(owner, repo, branch, token).await {
         Ok(data) => GraphqlResult::Data(data),
         Err(err) => GraphqlResult::Error(err.to_string()),
