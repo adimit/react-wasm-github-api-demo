@@ -1,5 +1,6 @@
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
+mod github;
 mod utils;
 mod web;
 use cfg_if::cfg_if;
@@ -147,24 +148,17 @@ async fn run_graphql_private(
     branch: String,
     token: String,
 ) -> anyhow::Result<Data> {
-    let response = web::gql_call(
-        BranchHeadCommitAuthor,
-        branch_head_commit_author::Variables {
-            branch: branch.clone(),
-            owner,
-            repo_name: repo,
-        },
-        "https://api.github.com/graphql".into(),
-        [
-            ("Authorization".into(), format!("Bearer {}", token)),
-            ("Accept".into(), "application/vnd.github.v3+json".into()),
-            ("Content-Type".into(), "application/json".into()),
-        ]
-        .iter()
-        .cloned()
-        .collect(),
-    )
-    .await?;
+    let github = github::Github::new(token);
+    let response = github
+        .graphql(
+            BranchHeadCommitAuthor,
+            branch_head_commit_author::Variables {
+                branch: branch.clone(),
+                owner,
+                repo_name: repo,
+            },
+        )
+        .await?;
 
     let data = response.data.ok_or(anyhow!("No data on response"))?;
     let rate_limit = data
@@ -209,98 +203,6 @@ async fn run_graphql_private(
         }),
     })
 }
-
-/*
-async fn run_graphql_private(
-    owner: String,
-    repo: String,
-    branch: String,
-    token: String,
-) -> Result<Data, FatalError> {
-    init_log();
-    let query = BranchHeadCommitAuthor::build_query(branch_head_commit_author::Variables {
-        branch: branch.clone(),
-        owner,
-        repo_name: repo,
-    });
-    let mut opts = RequestInit::new();
-    let headers = JsValue::from_serde(&GithubHeaders {
-        authorization: format!("Bearer {}", token),
-        accept: "application/vnd.github.v3+json".into(),
-    })?;
-    opts.headers(&headers);
-    opts.method("POST");
-    opts.mode(RequestMode::Cors);
-    let body = serde_json::to_string(&query)?;
-    opts.body(Option::Some(&JsValue::from_str(&body)));
-
-    let url = "https://api.github.com/graphql";
-
-    let window = web_sys::window().expect("Should have window here");
-    let request = Request::new_with_str_and_init(&url, &opts)?;
-    let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
-    let cast_response = resp_value.dyn_into::<web_sys::Response>()?;
-    let text_response = cast_response.text()?;
-    let text = JsFuture::from(text_response).await?;
-    let raw_response = text.as_string().ok_or(FatalError {
-        message: "Couldn't get response text.".into(),
-    })?;
-    log::debug!("{:#?}", raw_response);
-
-    let resp_data_option: graphql_client::Response<branch_head_commit_author::ResponseData> =
-        serde_json::from_str(&raw_response)?;
-
-    let data = resp_data_option.data.ok_or(FatalError {
-        message: "Could not get response data".into(),
-    })?;
-    let rate_limit = data.rate_limit.ok_or(FatalError {
-        message: "Could not find rate limit info in data.".into(),
-    })?;
-    let repository: branch_head_commit_author::BranchHeadCommitAuthorRepository =
-        data.repository.ok_or(FatalError {
-            message: "Could not find repository info in data.".into(),
-        })?;
-    let branch_ref = repository.ref_.ok_or(FatalError {
-        message: format!(
-            "No branch {} on repository {}",
-            &branch, repository.name_with_owner
-        ),
-    })?;
-    let head = branch_ref.target.ok_or(FatalError {
-        message: format!(
-            "No target on for branch {} on repository {}",
-            &branch, repository.name_with_owner
-        ),
-    })?;
-
-    Ok(Data {
-        rate_limit_info: RateLimitInfo {
-            cost: rate_limit.cost,
-            limit: rate_limit.limit,
-            node_count: rate_limit.node_count,
-            remaining: rate_limit.remaining,
-            used: rate_limit.used,
-            reset_at: rate_limit.reset_at,
-        },
-        repo: Repo {
-            name_with_owner: repository.name_with_owner,
-            owner: get_user_from_owner(repository.owner)?,
-        },
-        branch: Branch {
-            name: branch_ref.name,
-            head: get_commit_info_from_target(head)?,
-        },
-        errors: resp_data_option.errors.map_or(vec![], |error_list| {
-            error_list
-                .into_iter()
-                .map(|error| GraphqlError {
-                    message: error.message,
-                })
-                .collect::<Vec<GraphqlError>>()
-        }),
-    })
-}
-*/
 
 fn get_commit_info_from_target(
     head: branch_head_commit_author::BranchHeadCommitAuthorRepositoryRefTarget,
