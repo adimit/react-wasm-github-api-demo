@@ -1,30 +1,22 @@
 import React, { useEffect } from "react";
-import { CircularProgress, Grid, TextField } from "@material-ui/core";
+import {
+  Avatar,
+  Card,
+  CardContent,
+  CircularProgress,
+  Container,
+  FormLabel,
+  Grid,
+  LinearProgress,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
+  Paper,
+  TextField,
+  Typography,
+} from "@material-ui/core";
 import { run_graphql } from "./pkg";
-
-interface Signature {
-  name: string;
-  email: string;
-}
-
-interface CommitDetails {
-  author: Signature;
-  commiter: Signature;
-}
-interface Commit {
-  sha: string;
-  commit: CommitDetails;
-}
-
-interface Branch {
-  name: string;
-  commit: Commit;
-}
-
-interface GithubError {
-  message: string;
-  documentation_url: string;
-}
 
 const InputField = ({
   setValue,
@@ -83,6 +75,108 @@ interface BackendError {
   Error: string;
 }
 
+const RateLimitInfo: React.FC<BackendData["Data"]["rate_limit_info"]> = ({
+  used,
+  cost,
+  limit,
+  node_count,
+  reset_at,
+}) => {
+  const diff = Math.floor(
+    (new Date(reset_at).getTime() - new Date().getTime()) / 1000 / 60
+  );
+  return (
+    <Card>
+      <CardContent>
+        <Typography variant="h5">Rate Limit</Typography>
+        <Typography color="textSecondary">
+          {diff >= 0 ? `Resets in ${diff} minutes` : "Already reset."}
+        </Typography>
+        <Typography>{`Usage: ${used}/${limit}`}</Typography>
+        <Typography variant="h6">Last Request</Typography>
+        <Typography>{`Cost: ${cost}, nodes: ${node_count}`}</Typography>
+      </CardContent>
+      <LinearProgress value={(used / limit) * 100} variant="determinate" />
+    </Card>
+  );
+};
+
+const RepositoryInfo: React.FC<BackendData["Data"]["repo"]> = ({
+  name_with_owner,
+  owner,
+}) => {
+  return (
+    <Card>
+      <CardContent>
+        <Typography variant="h5">Repository</Typography>
+        <Typography color="textSecondary">{name_with_owner}</Typography>
+        <List>
+          <ListItem>
+            <ListItemAvatar>
+              <Avatar alt={owner.name} src={owner.avatar_url} />
+            </ListItemAvatar>
+            <ListItemText primary="Owner" secondary={owner.name} />
+          </ListItem>
+        </List>
+      </CardContent>
+    </Card>
+  );
+};
+
+const BranchInfo: React.FC<BackendData["Data"]["branch"]> = ({
+  name,
+  head: { sha, author, committer },
+}) => {
+  return (
+    <Card>
+      <CardContent>
+        <Typography variant="h5">Branch</Typography>
+        <Typography color="textSecondary">{name}</Typography>
+        <Typography variant="h6">Head</Typography>
+        <Typography color="textSecondary">{sha}</Typography>
+        <List>
+          <ListItem>
+            <ListItemAvatar>
+              <Avatar alt={author.name} src={author.avatar_url} />
+            </ListItemAvatar>
+            <ListItemText primary="Author" secondary={author.name} />
+          </ListItem>
+          <ListItem>
+            <ListItemAvatar>
+              <Avatar alt={committer.name} src={committer.avatar_url} />
+            </ListItemAvatar>
+            <ListItemText primary="Committer" secondary={committer.name} />
+          </ListItem>
+        </List>
+      </CardContent>
+    </Card>
+  );
+};
+
+const RenderData: React.FC<BackendData> = ({
+  Data: { repo, rate_limit_info, branch },
+}) => {
+  return (
+    <>
+      <RepositoryInfo {...repo} />
+      <BranchInfo {...branch} />
+      <RateLimitInfo {...rate_limit_info} />
+    </>
+  );
+};
+
+const RenderError: React.FC<BackendError> = ({ Error: message }) => (
+  <FormLabel error={true}>{message}</FormLabel>
+);
+
+const RenderResult: React.FC<BackendData | BackendError> = (props) => {
+  if ("Error" in props) {
+    return <RenderError {...props} />;
+  } else {
+    return <RenderData {...props} />;
+  }
+};
+
 function App() {
   const [{ repo, owner, branch }, setRepositoryInfo] = React.useState<{
     owner: string;
@@ -93,17 +187,15 @@ function App() {
     localStorage.getItem("github.token") ?? ""
   );
 
-  const [{ loading, branchInfo, error }, setFetchResult] = React.useState<{
+  const [{ loading, data }, setFetchResult] = React.useState<{
     loading: boolean;
-    branchInfo?: Branch;
-    error?: GithubError;
+    data?: BackendData | BackendError;
   }>({ loading: false });
   useEffect(() => {
     if (repo !== "" && branch !== "" && owner !== "" && apiKey !== "") {
       run_graphql(owner, repo, branch, apiKey)
         .then((result: BackendData | BackendError) => {
-          setFetchResult({ loading: false });
-          console.log("graphql ", result);
+          setFetchResult({ loading: false, data: result });
         })
         .catch((error: any) => console.error(error));
       setFetchResult({ loading: true });
@@ -114,46 +206,43 @@ function App() {
     apiKey !== "" && localStorage.setItem("github.token", apiKey);
   }, [apiKey]);
 
-  return (
-    <Grid container={true} spacing={6}>
-      <Grid item={true} xs={3}>
-        <InputField
-          id="owner"
-          label="Owner"
-          setValue={(val) => setRepositoryInfo({ branch, owner: val, repo })}
-        />
-      </Grid>
-      <Grid item={true} xs={3}>
-        <InputField
-          id="repo"
-          label="Repository Name"
-          setValue={(val) => setRepositoryInfo({ repo: val, owner, branch })}
-        />
-      </Grid>
-      <Grid item={true} xs={3}>
-        <InputField
-          id="branch"
-          label="Branch Name"
-          setValue={(val) => setRepositoryInfo({ repo, owner, branch: val })}
-        />
-      </Grid>
-      <Grid item={true} xs={3}>
-        <InputField
-          id="token"
-          label="Api Token"
-          setValue={(val) => setApiKey(val)}
-          defaultValue={apiKey}
-        />
-      </Grid>
+  console.log("data", data);
 
-      <Grid item={true}>
-        {loading && <CircularProgress />}
-        {branchInfo &&
-          `Name: ${branchInfo.name}, HEAD: ${branchInfo.commit.sha}, author: ${branchInfo.commit.commit.author.name} <${branchInfo.commit.commit.author.email}>`}
-        {error && <a href={error.documentation_url}>{error.message}</a>}
-      </Grid>
-      <Grid item={true}></Grid>
-    </Grid>
+  return (
+    <Container>
+      <Paper elevation={1}>
+        <Grid container={true} justify="space-around">
+          <InputField
+            id="owner"
+            label="Owner"
+            setValue={(val) => setRepositoryInfo({ branch, owner: val, repo })}
+          />
+          <InputField
+            id="repo"
+            label="Repository Name"
+            setValue={(val) => setRepositoryInfo({ repo: val, owner, branch })}
+          />
+          <InputField
+            id="branch"
+            label="Branch Name"
+            setValue={(val) => setRepositoryInfo({ repo, owner, branch: val })}
+          />
+          <InputField
+            id="token"
+            label="Api Token"
+            setValue={(val) => setApiKey(val)}
+            defaultValue={apiKey}
+          />
+        </Grid>
+      </Paper>
+
+      <Paper>
+        <Grid container={true}>
+          {loading && <CircularProgress />}
+          {data && <RenderResult {...data} />}
+        </Grid>
+      </Paper>
+    </Container>
   );
 }
 
