@@ -51,6 +51,7 @@ interface BackendData {
       name: string;
       head: {
         author: User;
+        message: string;
         committer: User;
         sha: string;
       };
@@ -125,7 +126,7 @@ const RepositoryInfo: React.FC<BackendData["Data"]["repo"]> = ({
 
 const BranchInfo: React.FC<BackendData["Data"]["branch"]> = ({
   name,
-  head: { sha, author, committer },
+  head: { sha, message, author, committer },
 }) => {
   return (
     <Card>
@@ -134,6 +135,7 @@ const BranchInfo: React.FC<BackendData["Data"]["branch"]> = ({
         <Typography color="textSecondary">{name}</Typography>
         <Typography variant="h6">Head</Typography>
         <Typography color="textSecondary">{sha}</Typography>
+        <Typography>{message}</Typography>
         <List>
           <ListItem>
             <ListItemAvatar>

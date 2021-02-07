@@ -23,6 +23,7 @@ query BranchHeadCommitAuthor($owner: String!, $repoName: String!, $branch: Strin
         id
         ...on Commit {
           oid
+          message
           committer {
             name
             email

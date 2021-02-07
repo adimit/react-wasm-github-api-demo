@@ -42,6 +42,7 @@ pub struct Commit {
     author: User,
     committer: User,
     sha: String,
+    message: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -240,6 +241,7 @@ fn get_commit_info_from_target(
         Ok(Commit {
             author,
             committer,
+            message: commit.message,
             sha: commit.oid,
         })
     } else {
