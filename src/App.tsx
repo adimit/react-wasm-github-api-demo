@@ -12,8 +12,10 @@ import {
   ListItem,
   ListItemAvatar,
   ListItemText,
+  makeStyles,
   Paper,
   TextField,
+  Theme,
   Typography,
 } from "@material-ui/core";
 import { run_graphql } from "./pkg";
@@ -86,8 +88,10 @@ const RateLimitInfo: React.FC<BackendData["Data"]["rate_limit_info"]> = ({
   const diff = Math.floor(
     (new Date(reset_at).getTime() - new Date().getTime()) / 1000 / 60
   );
+  const classes = useStyles();
   return (
-    <Card>
+    <Card className={classes.dataCard}>
+      <LinearProgress value={(used / limit) * 100} variant="determinate" />
       <CardContent>
         <Typography variant="h5">Rate Limit</Typography>
         <Typography color="textSecondary">
@@ -97,7 +101,6 @@ const RateLimitInfo: React.FC<BackendData["Data"]["rate_limit_info"]> = ({
         <Typography variant="h6">Last Request</Typography>
         <Typography>{`Cost: ${cost}, nodes: ${node_count}`}</Typography>
       </CardContent>
-      <LinearProgress value={(used / limit) * 100} variant="determinate" />
     </Card>
   );
 };
@@ -106,8 +109,9 @@ const RepositoryInfo: React.FC<BackendData["Data"]["repo"]> = ({
   name_with_owner,
   owner,
 }) => {
+  const classes = useStyles();
   return (
-    <Card>
+    <Card className={classes.dataCard}>
       <CardContent>
         <Typography variant="h5">Repository</Typography>
         <Typography color="textSecondary">{name_with_owner}</Typography>
@@ -128,8 +132,9 @@ const BranchInfo: React.FC<BackendData["Data"]["branch"]> = ({
   name,
   head: { sha, message, author, committer },
 }) => {
+  const classes = useStyles();
   return (
-    <Card>
+    <Card className={classes.dataCard}>
       <CardContent>
         <Typography variant="h5">Branch</Typography>
         <Typography color="textSecondary">{name}</Typography>
@@ -160,8 +165,8 @@ const RenderData: React.FC<BackendData> = ({
 }) => {
   return (
     <>
-      <RepositoryInfo {...repo} />
       <BranchInfo {...branch} />
+      <RepositoryInfo {...repo} />
       <RateLimitInfo {...rate_limit_info} />
     </>
   );
@@ -178,6 +183,15 @@ const RenderResult: React.FC<BackendData | BackendError> = (props) => {
     return <RenderData {...props} />;
   }
 };
+
+const useStyles = makeStyles((theme: Theme) => ({
+  container: {
+    marginTop: theme.spacing(4),
+  },
+  dataCard: {
+    margin: theme.spacing(2),
+  },
+}));
 
 function App() {
   const [{ repo, owner, branch }, setRepositoryInfo] = React.useState<{
@@ -208,35 +222,43 @@ function App() {
     apiKey !== "" && localStorage.setItem("github.token", apiKey);
   }, [apiKey]);
 
-  console.log("data", data);
+  const classes = useStyles();
 
   return (
-    <Container>
-      <Paper elevation={1}>
-        <Grid container={true} justify="space-around">
-          <InputField
-            id="owner"
-            label="Owner"
-            setValue={(val) => setRepositoryInfo({ branch, owner: val, repo })}
-          />
-          <InputField
-            id="repo"
-            label="Repository Name"
-            setValue={(val) => setRepositoryInfo({ repo: val, owner, branch })}
-          />
-          <InputField
-            id="branch"
-            label="Branch Name"
-            setValue={(val) => setRepositoryInfo({ repo, owner, branch: val })}
-          />
-          <InputField
-            id="token"
-            label="Api Token"
-            setValue={(val) => setApiKey(val)}
-            defaultValue={apiKey}
-          />
-        </Grid>
-      </Paper>
+    <Container maxWidth="sm" className={classes.container}>
+      <Card>
+        <CardContent>
+          <Grid container={true} justify="space-around">
+            <InputField
+              id="owner"
+              label="Owner"
+              setValue={(val) =>
+                setRepositoryInfo({ branch, owner: val, repo })
+              }
+            />
+            <InputField
+              id="repo"
+              label="Repository Name"
+              setValue={(val) =>
+                setRepositoryInfo({ repo: val, owner, branch })
+              }
+            />
+            <InputField
+              id="branch"
+              label="Branch Name"
+              setValue={(val) =>
+                setRepositoryInfo({ repo, owner, branch: val })
+              }
+            />
+            <InputField
+              id="token"
+              label="Api Token"
+              setValue={(val) => setApiKey(val)}
+              defaultValue={apiKey}
+            />
+          </Grid>
+        </CardContent>
+      </Card>
 
       <Paper>
         <Grid container={true}>
