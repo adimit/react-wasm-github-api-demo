@@ -259,6 +259,13 @@ fn get_user_from_owner(
                 handle: Option::Some(owner.login),
             })
         }
-        _ => Err(anyhow!("Can only get owner on User, not Organisation")),
+        branch_head_commit_author::BranchHeadCommitAuthorRepositoryOwnerOn::Organization(orga) => {
+            Ok(User {
+                avatar_url: owner.avatar_url,
+                name: orga.name,
+                handle: Option::Some(owner.login),
+                email: orga.email,
+            })
+        }
     }
 }

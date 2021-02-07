@@ -10,6 +10,10 @@ query BranchHeadCommitAuthor($owner: String!, $repoName: String!, $branch: Strin
         name
         email
       }
+      ... on Organization {
+        name
+        email
+      }
     }
     ref(qualifiedName: $branch) {
       id
