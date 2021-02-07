@@ -184,7 +184,7 @@ function App() {
     owner: string;
     branch: string;
     repo: string;
-  }>({ owner: "adimit", branch: "master", repo: "config" });
+  }>({ owner: "", branch: "", repo: "" });
   const [apiKey, setApiKey] = React.useState<string>(
     localStorage.getItem("github.token") ?? ""
   );
