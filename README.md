@@ -1,4 +1,4 @@
-# Rust + Creat React App + Typescript
+# Rust 🦀 + Create React App ⚛️ + Typescript
 
 This is a demo application that fetches generic information about a repository using the Github Graphql API. This repository is meant to serve as a springboard for creating new applications that use React and Rust/WASM.
 
