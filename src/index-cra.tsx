@@ -1,10 +1,11 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import "./index.css";
 import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 import { init } from "./pkg";
 
+// Initialise Rust-Side logging & panic hooks. Only call this once, otherwise
+// Rust will panic.
 init();
 
 ReactDOM.render(
