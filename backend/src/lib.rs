@@ -55,11 +55,6 @@ pub struct GraphqlError {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct FatalError {
-    message: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
 pub struct RateLimitInfo {
     cost: i64,
     limit: i64,
@@ -97,28 +92,6 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 struct GithubHeaders {
     pub authorization: String,
     pub accept: String,
-}
-
-impl From<FatalError> for JsValue {
-    fn from(err: FatalError) -> Self {
-        JsValue::from_serde(&err).unwrap()
-    }
-}
-
-impl From<JsValue> for FatalError {
-    fn from(js: JsValue) -> Self {
-        FatalError {
-            message: format!("JS error: {:#?}", js),
-        }
-    }
-}
-
-impl From<serde_json::Error> for FatalError {
-    fn from(err: serde_json::Error) -> Self {
-        FatalError {
-            message: format!("De/serialisation error: {}", err),
-        }
-    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
