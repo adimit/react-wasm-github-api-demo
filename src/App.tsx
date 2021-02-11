@@ -171,19 +171,29 @@ const RenderData: React.FC<BackendData> = ({
   );
 };
 
-const RenderError: React.FC<{ message: string }> = ({ message }) => (
-  <FormLabel error={true}>{message}</FormLabel>
+const RenderError: React.FC<{
+  oops?: string;
+  errors?: [{ message: string }];
+}> = ({ oops, errors }) => (
+  <>
+    {oops && <FormLabel error={true}>{oops}</FormLabel>}
+    {errors &&
+      errors.map(({ message }) => (
+        <FormLabel error={true}>{message}</FormLabel>
+      ))}
+  </>
 );
 
 const RenderResult: React.FC<BackendData & { error?: string }> = ({
   error,
   ...props
 }) => {
-  if (error) {
-    return <RenderError message={error} />;
-  } else {
-    return <RenderData {...props} />;
-  }
+  return (
+    <>
+      <RenderError oops={error} errors={props.errors} />
+      <RenderData {...props} />
+    </>
+  );
 };
 
 const useStyles = makeStyles((theme: Theme) => ({
