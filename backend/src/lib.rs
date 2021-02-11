@@ -112,6 +112,17 @@ pub async fn run_graphql(
         .map_err(|err| js_sys::Error::new(&err.to_string()))
 }
 
+fn get_rate_limit_info(rate_limit: BranchHeadCommitAuthorRateLimit) -> RateLimitInfo {
+    RateLimitInfo {
+        cost: rate_limit.cost,
+        limit: rate_limit.limit,
+        node_count: rate_limit.node_count,
+        remaining: rate_limit.remaining,
+        used: rate_limit.used,
+        reset_at: rate_limit.reset_at,
+    }
+}
+
 async fn run_graphql_private(
     owner: String,
     repo: String,
@@ -131,38 +142,22 @@ async fn run_graphql_private(
         .await?;
 
     let data = response.data.ok_or(anyhow!("No data on response"))?;
-    let rate_limit = data
-        .rate_limit
-        .ok_or(anyhow!("No rate_limit on response data"))?;
-    let repository = data.repository.ok_or(anyhow!("No repository in data"))?;
-    let branch_ref = repository.ref_.ok_or(anyhow!(
-        "No branch {} on repository {}",
-        &branch,
-        repository.name_with_owner
-    ))?;
-    let head = branch_ref.target.ok_or(anyhow!(
-        "No target for branch {} on repository {}",
-        &branch,
-        repository.name_with_owner
-    ))?;
-
+    let repository = &data.repository.as_ref().ok_or(anyhow!("Error"))?;
+    let branch_ref = &repository
+        .ref_
+        .as_ref()
+        .ok_or(anyhow!("No branch {} on repository", &branch))?;
     Ok(Data {
-        rate_limit_info: RateLimitInfo {
-            cost: rate_limit.cost,
-            limit: rate_limit.limit,
-            node_count: rate_limit.node_count,
-            remaining: rate_limit.remaining,
-            used: rate_limit.used,
-            reset_at: rate_limit.reset_at,
-        },
-        repo: Repo {
-            name_with_owner: repository.name_with_owner,
-            owner: get_user_from_owner(repository.owner)?,
-        },
-        branch: Branch {
-            name: branch_ref.name,
-            head: get_commit_info_from_target(head)?,
-        },
+        rate_limit_info: get_rate_limit_info(
+            data.rate_limit
+                .ok_or(anyhow!("No rate_limit on response data"))?,
+        ),
+        repo: get_repo_info(
+            data.repository
+                .as_ref()
+                .ok_or(anyhow!("No repository in data"))?,
+        )?,
+        branch: get_branch_info(&branch_ref)?,
         errors: response.errors.map_or(vec![], |error_list| {
             error_list
                 .into_iter()
@@ -174,56 +169,83 @@ async fn run_graphql_private(
     })
 }
 
+fn get_branch_info(branch: &BranchHeadCommitAuthorRepositoryRef) -> anyhow::Result<Branch> {
+    let head = branch
+        .target
+        .as_ref()
+        .ok_or(anyhow!("No target for branch"))?;
+
+    Ok(Branch {
+        name: branch.name.to_string(),
+        head: get_commit_info_from_target(head)?,
+    })
+}
+
+fn get_repo_info(repo: &BranchHeadCommitAuthorRepository) -> anyhow::Result<Repo> {
+    Ok(Repo {
+        name_with_owner: repo.name_with_owner.to_string(),
+        owner: get_user_from_owner(&repo.owner)?,
+    })
+}
+
 fn get_commit_info_from_target(
-    head: BranchHeadCommitAuthorRepositoryRefTarget,
+    head: &BranchHeadCommitAuthorRepositoryRefTarget,
 ) -> anyhow::Result<Commit> {
-    if let BranchHeadCommitAuthorRepositoryRefTargetOn::Commit(commit) = head.on {
+    if let BranchHeadCommitAuthorRepositoryRefTargetOn::Commit(commit) = &head.on {
         let github_author = commit
             .author
+            .as_ref()
             .ok_or(anyhow!("No author on commit {}", commit.oid))?;
 
         let github_committer = commit
             .committer
+            .as_ref()
             .ok_or(anyhow!("No committer on commit {}", commit.oid))?;
 
         let author = User {
-            avatar_url: github_author.avatar_url,
-            name: github_author.name,
-            handle: github_author.user.map(|user| user.login),
-            email: github_author.email,
+            avatar_url: github_author.avatar_url.to_string(),
+            name: github_author.name.as_ref().map(String::from),
+            handle: github_author
+                .user
+                .as_ref()
+                .map(|user| user.login.to_string()),
+            email: github_author.email.as_ref().map(String::from),
         };
 
         let committer = User {
-            avatar_url: github_committer.avatar_url,
-            name: github_committer.name,
-            handle: github_committer.user.map(|user| user.login),
-            email: github_committer.email,
+            avatar_url: github_committer.avatar_url.to_string(),
+            name: github_committer.name.as_ref().map(String::from),
+            handle: github_committer
+                .user
+                .as_ref()
+                .map(|user| user.login.to_string()),
+            email: github_committer.email.as_ref().map(String::from),
         };
 
         Ok(Commit {
             author,
             committer,
-            message: commit.message,
-            sha: commit.oid,
+            message: commit.message.to_string(),
+            sha: commit.oid.to_string(),
         })
     } else {
         Err(anyhow!("ref does not appear to be a commit"))
     }
 }
 
-fn get_user_from_owner(owner: BranchHeadCommitAuthorRepositoryOwner) -> anyhow::Result<User> {
-    match owner.on {
+fn get_user_from_owner(owner: &BranchHeadCommitAuthorRepositoryOwner) -> anyhow::Result<User> {
+    match &owner.on {
         BranchHeadCommitAuthorRepositoryOwnerOn::User(user) => Ok(User {
-            avatar_url: owner.avatar_url,
-            name: user.name,
-            email: Option::Some(user.email),
-            handle: Option::Some(owner.login),
+            avatar_url: owner.avatar_url.to_string(),
+            name: user.name.as_ref().map(String::from),
+            email: Option::Some(user.email.to_string()),
+            handle: Option::Some(owner.login.to_string()),
         }),
         BranchHeadCommitAuthorRepositoryOwnerOn::Organization(orga) => Ok(User {
-            avatar_url: owner.avatar_url,
-            name: orga.name,
-            handle: Option::Some(owner.login),
-            email: orga.email,
+            avatar_url: owner.avatar_url.to_string(),
+            name: orga.name.as_ref().map(String::from),
+            handle: Option::Some(owner.login.to_string()),
+            email: orga.email.as_ref().map(String::from),
         }),
     }
 }
