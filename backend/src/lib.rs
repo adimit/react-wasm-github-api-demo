@@ -176,7 +176,7 @@ fn get_branch_info(branch: &BranchHeadCommitAuthorRepositoryRef) -> anyhow::Resu
 fn get_repo_info(repo: &BranchHeadCommitAuthorRepository) -> anyhow::Result<Repo> {
     Ok(Repo {
         name_with_owner: repo.name_with_owner.to_string(),
-        owner: get_user_from_owner(&repo.owner)?,
+        owner: get_user_from_owner(&repo.owner),
     })
 }
 
@@ -225,19 +225,19 @@ fn get_commit_info_from_target(
     }
 }
 
-fn get_user_from_owner(owner: &BranchHeadCommitAuthorRepositoryOwner) -> anyhow::Result<User> {
+fn get_user_from_owner(owner: &BranchHeadCommitAuthorRepositoryOwner) -> User {
     match &owner.on {
-        BranchHeadCommitAuthorRepositoryOwnerOn::User(user) => Ok(User {
+        BranchHeadCommitAuthorRepositoryOwnerOn::User(user) => User {
             avatar_url: owner.avatar_url.to_string(),
             name: user.name.as_ref().map(String::from),
             email: Option::Some(user.email.to_string()),
             handle: Option::Some(owner.login.to_string()),
-        }),
-        BranchHeadCommitAuthorRepositoryOwnerOn::Organization(orga) => Ok(User {
+        },
+        BranchHeadCommitAuthorRepositoryOwnerOn::Organization(orga) => User {
             avatar_url: owner.avatar_url.to_string(),
             name: orga.name.as_ref().map(String::from),
             handle: Option::Some(owner.login.to_string()),
             email: orga.email.as_ref().map(String::from),
-        }),
+        },
     }
 }
