@@ -11,6 +11,12 @@ use wasm_bindgen::prelude::*;
 use branch_head_commit_author::Variables as QueryVariables;
 use branch_head_commit_author::*;
 
+// When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
+// allocator.
+#[cfg(feature = "wee_alloc")]
+#[global_allocator]
+static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+
 // Scalar types declared in the schema need to be declared in the
 // scope that declares the graphql types
 type DateTime = String;
@@ -82,34 +88,16 @@ cfg_if! {
     }
 }
 
-// When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
-// allocator.
-#[cfg(feature = "wee_alloc")]
-#[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
-
-#[derive(Debug, Serialize)]
-struct GithubHeaders {
-    pub authorization: String,
-    pub accept: String,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub enum GraphqlResult {
-    Data(Data),
-    Error(String),
-}
-
-impl From<GraphqlResult> for JsValue {
-    fn from(res: GraphqlResult) -> Self {
-        JsValue::from_serde(&res).unwrap()
-    }
-}
-
 #[wasm_bindgen]
 pub fn init() {
     init_log();
     crate::utils::set_panic_hook();
+}
+
+impl Into<JsValue> for Data {
+    fn into(self) -> JsValue {
+        JsValue::from_serde(&self).unwrap()
+    }
 }
 
 #[wasm_bindgen]
@@ -118,11 +106,10 @@ pub async fn run_graphql(
     repo: String,
     branch: String,
     token: String,
-) -> GraphqlResult {
-    match run_graphql_private(owner, repo, branch, token).await {
-        Ok(data) => GraphqlResult::Data(data),
-        Err(err) => GraphqlResult::Error(err.to_string()),
-    }
+) -> Result<Data, js_sys::Error> {
+    run_graphql_private(owner, repo, branch, token)
+        .await
+        .map_err(|err| js_sys::Error::new(&err.to_string()))
 }
 
 async fn run_graphql_private(

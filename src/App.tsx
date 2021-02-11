@@ -47,38 +47,38 @@ interface User {
   name?: string;
 }
 
-interface BackendData {
-  Data: {
-    branch: {
-      name: string;
-      head: {
-        author: User;
-        message: string;
-        committer: User;
-        sha: string;
-      };
-    };
-    rate_limit_info: {
-      cost: number;
-      limit: number;
-      node_count: number;
-      remaining: number;
-      reset_at: string;
-      used: number;
-    };
-    errors: [{ message: string }];
-    repo: {
-      name_with_owner: string;
-      owner: User;
-    };
+interface Branch {
+  name: string;
+  head: {
+    author: User;
+    message: string;
+    committer: User;
+    sha: string;
   };
 }
 
-interface BackendError {
-  Error: string;
+interface RateLimitInfo {
+  cost: number;
+  limit: number;
+  node_count: number;
+  remaining: number;
+  reset_at: string;
+  used: number;
 }
 
-const RateLimitInfo: React.FC<BackendData["Data"]["rate_limit_info"]> = ({
+interface Repo {
+  name_with_owner: string;
+  owner: User;
+}
+
+interface BackendData {
+  branch?: Branch;
+  rate_limit_info?: RateLimitInfo;
+  errors?: [{ message: string }];
+  repo?: Repo;
+}
+
+const RateLimitInfoDisplay: React.FC<RateLimitInfo> = ({
   used,
   cost,
   limit,
@@ -105,10 +105,7 @@ const RateLimitInfo: React.FC<BackendData["Data"]["rate_limit_info"]> = ({
   );
 };
 
-const RepositoryInfo: React.FC<BackendData["Data"]["repo"]> = ({
-  name_with_owner,
-  owner,
-}) => {
+const RepositoryInfo: React.FC<Repo> = ({ name_with_owner, owner }) => {
   const classes = useStyles();
   return (
     <Card className={classes.dataCard}>
@@ -128,7 +125,7 @@ const RepositoryInfo: React.FC<BackendData["Data"]["repo"]> = ({
   );
 };
 
-const BranchInfo: React.FC<BackendData["Data"]["branch"]> = ({
+const BranchInfo: React.FC<Branch> = ({
   name,
   head: { sha, message, author, committer },
 }) => {
@@ -161,24 +158,29 @@ const BranchInfo: React.FC<BackendData["Data"]["branch"]> = ({
 };
 
 const RenderData: React.FC<BackendData> = ({
-  Data: { repo, rate_limit_info, branch },
+  repo,
+  rate_limit_info,
+  branch,
 }) => {
   return (
     <>
-      <BranchInfo {...branch} />
-      <RepositoryInfo {...repo} />
-      <RateLimitInfo {...rate_limit_info} />
+      {branch && <BranchInfo {...branch} />}
+      {repo && <RepositoryInfo {...repo} />}
+      {rate_limit_info && <RateLimitInfoDisplay {...rate_limit_info} />}
     </>
   );
 };
 
-const RenderError: React.FC<BackendError> = ({ Error: message }) => (
+const RenderError: React.FC<{ message: string }> = ({ message }) => (
   <FormLabel error={true}>{message}</FormLabel>
 );
 
-const RenderResult: React.FC<BackendData | BackendError> = (props) => {
-  if ("Error" in props) {
-    return <RenderError {...props} />;
+const RenderResult: React.FC<BackendData & { error?: string }> = ({
+  error,
+  ...props
+}) => {
+  if (error) {
+    return <RenderError message={error} />;
   } else {
     return <RenderData {...props} />;
   }
@@ -203,17 +205,24 @@ function App() {
     localStorage.getItem("github.token") ?? ""
   );
 
-  const [{ loading, data }, setFetchResult] = React.useState<{
+  const [{ loading, data, error }, setFetchResult] = React.useState<{
     loading: boolean;
-    data?: BackendData | BackendError;
+    data?: BackendData;
+    error?: string;
   }>({ loading: false });
   useEffect(() => {
     if (repo !== "" && branch !== "" && owner !== "" && apiKey !== "") {
-      run_graphql(owner, repo, branch, apiKey)
-        .then((result: BackendData | BackendError) => {
+      run_graphql(owner, repo, branch, apiKey).then(
+        (result: BackendData) => {
           setFetchResult({ loading: false, data: result });
-        })
-        .catch((error: any) => console.error(error));
+        },
+        (error: Error) => {
+          setFetchResult({
+            loading: false,
+            error: `${error.name}: ${error.message}`,
+          });
+        }
+      );
       setFetchResult({ loading: true });
     }
   }, [repo, owner, branch, apiKey]);
@@ -262,8 +271,11 @@ function App() {
 
       <Paper>
         <Grid container={true}>
-          {loading && <CircularProgress />}
-          {data && <RenderResult {...data} />}
+          {loading ? (
+            <CircularProgress />
+          ) : (
+            <RenderResult {...data} error={error} />
+          )}
         </Grid>
       </Paper>
     </Container>
