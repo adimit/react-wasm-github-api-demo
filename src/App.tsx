@@ -161,15 +161,16 @@ const RenderData: React.FC<BackendData> = ({
   repo,
   rate_limit_info,
   branch,
-}) => {
-  return (
-    <>
-      {branch && <BranchInfo {...branch} />}
-      {repo && <RepositoryInfo {...repo} />}
-      {rate_limit_info && <RateLimitInfoDisplay {...rate_limit_info} />}
-    </>
-  );
-};
+}) => (
+  <>
+    {branch && <BranchInfo {...branch} />}
+    {repo && <RepositoryInfo {...repo} />}
+    {rate_limit_info && <RateLimitInfoDisplay {...rate_limit_info} />}
+    {repo && !branch && (
+      <FormLabel error={true}>Could not find this branch</FormLabel>
+    )}
+  </>
+);
 
 const RenderError: React.FC<{
   oops?: string;
@@ -187,14 +188,12 @@ const RenderError: React.FC<{
 const RenderResult: React.FC<BackendData & { error?: string }> = ({
   error,
   ...props
-}) => {
-  return (
-    <>
-      <RenderError oops={error} errors={props.errors} />
-      <RenderData {...props} />
-    </>
-  );
-};
+}) => (
+  <>
+    <RenderError oops={error} errors={props.errors} />
+    <RenderData {...props} />
+  </>
+);
 
 const useStyles = makeStyles((theme: Theme) => ({
   container: {
