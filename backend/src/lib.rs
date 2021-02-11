@@ -142,12 +142,14 @@ async fn run_graphql_private(
         .await?;
 
     let data = response.data.ok_or(anyhow!("No data on response"))?;
-    let repository = &data.repository.as_ref().ok_or(anyhow!("Error"))?;
-    let branch_ref = &repository.ref_;
     Ok(Data {
         rate_limit_info: data.rate_limit.map(get_rate_limit_info),
         repo: data.repository.as_ref().map(get_repo_info).transpose()?,
-        branch: branch_ref.as_ref().map(get_branch_info).transpose()?,
+        branch: data
+            .repository
+            .as_ref()
+            .and_then(|repo| repo.ref_.as_ref().map(get_branch_info))
+            .transpose()?,
         errors: response.errors.map(|error_list| {
             error_list
                 .into_iter()
