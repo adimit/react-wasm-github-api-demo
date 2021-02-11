@@ -74,7 +74,7 @@ pub struct RateLimitInfo {
 pub struct Data {
     errors: Vec<GraphqlError>,
     rate_limit_info: RateLimitInfo,
-    branch: Branch,
+    branch: Option<Branch>,
     repo: Repo,
 }
 
@@ -143,10 +143,7 @@ async fn run_graphql_private(
 
     let data = response.data.ok_or(anyhow!("No data on response"))?;
     let repository = &data.repository.as_ref().ok_or(anyhow!("Error"))?;
-    let branch_ref = &repository
-        .ref_
-        .as_ref()
-        .ok_or(anyhow!("No branch {} on repository", &branch))?;
+    let branch_ref = &repository.ref_;
     Ok(Data {
         rate_limit_info: get_rate_limit_info(
             data.rate_limit
@@ -157,7 +154,7 @@ async fn run_graphql_private(
                 .as_ref()
                 .ok_or(anyhow!("No repository in data"))?,
         )?,
-        branch: get_branch_info(&branch_ref)?,
+        branch: branch_ref.as_ref().map(get_branch_info).transpose()?,
         errors: response.errors.map_or(vec![], |error_list| {
             error_list
                 .into_iter()
