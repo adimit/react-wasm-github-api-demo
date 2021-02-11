@@ -5,8 +5,14 @@ mod utils;
 mod web;
 use cfg_if::cfg_if;
 use graphql_client::GraphQLQuery;
+use wasm_bindgen::prelude::*;
 
-// Github Schema DateTime type is just a string
+// we import all types from the generated query
+use branch_head_commit_author::Variables as QueryVariables;
+use branch_head_commit_author::*;
+
+// Scalar types declared in the schema need to be declared in the
+// scope that declares the graphql types
 type DateTime = String;
 type URI = String;
 type GitObjectID = String;
@@ -14,8 +20,6 @@ type GitObjectID = String;
 #[derive(GraphQLQuery)]
 #[graphql(schema_path = "schema.json", query_path = "src/head-query.graphql")]
 pub struct BranchHeadCommitAuthor;
-
-use wasm_bindgen::prelude::*;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct User {
@@ -158,7 +162,7 @@ async fn run_graphql_private(
     let response = github
         .graphql(
             BranchHeadCommitAuthor,
-            branch_head_commit_author::Variables {
+            QueryVariables {
                 branch: branch.clone(),
                 owner,
                 repo_name: repo,
@@ -211,11 +215,9 @@ async fn run_graphql_private(
 }
 
 fn get_commit_info_from_target(
-    head: branch_head_commit_author::BranchHeadCommitAuthorRepositoryRefTarget,
+    head: BranchHeadCommitAuthorRepositoryRefTarget,
 ) -> anyhow::Result<Commit> {
-    if let branch_head_commit_author::BranchHeadCommitAuthorRepositoryRefTargetOn::Commit(commit) =
-        head.on
-    {
+    if let BranchHeadCommitAuthorRepositoryRefTargetOn::Commit(commit) = head.on {
         let github_author = commit
             .author
             .ok_or(anyhow!("No author on commit {}", commit.oid))?;
@@ -249,25 +251,19 @@ fn get_commit_info_from_target(
     }
 }
 
-fn get_user_from_owner(
-    owner: branch_head_commit_author::BranchHeadCommitAuthorRepositoryOwner,
-) -> anyhow::Result<User> {
+fn get_user_from_owner(owner: BranchHeadCommitAuthorRepositoryOwner) -> anyhow::Result<User> {
     match owner.on {
-        branch_head_commit_author::BranchHeadCommitAuthorRepositoryOwnerOn::User(user) => {
-            Ok(User {
-                avatar_url: owner.avatar_url,
-                name: user.name,
-                email: Option::Some(user.email),
-                handle: Option::Some(owner.login),
-            })
-        }
-        branch_head_commit_author::BranchHeadCommitAuthorRepositoryOwnerOn::Organization(orga) => {
-            Ok(User {
-                avatar_url: owner.avatar_url,
-                name: orga.name,
-                handle: Option::Some(owner.login),
-                email: orga.email,
-            })
-        }
+        BranchHeadCommitAuthorRepositoryOwnerOn::User(user) => Ok(User {
+            avatar_url: owner.avatar_url,
+            name: user.name,
+            email: Option::Some(user.email),
+            handle: Option::Some(owner.login),
+        }),
+        BranchHeadCommitAuthorRepositoryOwnerOn::Organization(orga) => Ok(User {
+            avatar_url: owner.avatar_url,
+            name: orga.name,
+            handle: Option::Some(owner.login),
+            email: orga.email,
+        }),
     }
 }
