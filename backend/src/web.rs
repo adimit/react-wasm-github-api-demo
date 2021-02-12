@@ -60,7 +60,7 @@ fn js_error(message: String) -> impl Fn(JsValue) -> anyhow::Error {
     }
 }
 
-pub async fn gql_call<Q: GraphQLQuery>(
+async fn gql_call<Q: GraphQLQuery>(
     _query: Q,
     variables: Q::Variables,
     endpoint: String,
