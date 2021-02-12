@@ -1,15 +1,15 @@
 use anyhow::anyhow;
-use serde::{Deserialize, Serialize};
-mod github;
-mod utils;
-mod web;
 use cfg_if::cfg_if;
 use graphql_client::GraphQLQuery;
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
 // we import all types from the generated query
 use branch_head_commit_author::Variables as QueryVariables;
 use branch_head_commit_author::*;
+
+mod utils;
+mod web;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -129,7 +129,7 @@ async fn run_graphql_private(
     branch: String,
     token: String,
 ) -> anyhow::Result<Data> {
-    let github = github::Github::new(token);
+    let github = web::github::Github::new(token);
     let response = github
         .graphql(
             BranchHeadCommitAuthor,
